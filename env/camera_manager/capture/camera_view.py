@@ -308,6 +308,12 @@ class CameraView(XFormPrim):
         else:
             tiled_data: wp.array = data
             info = {}
+        expected_size = self.tiled_resolution[0] * self.tiled_resolution[1] * spec["channels"]
+        if tiled_data.size != expected_size:
+            raise RuntimeError(
+                f"Invalid {annotator_type} camera buffer: expected {expected_size} values, "
+                f"got {tiled_data.size} with shape {tiled_data.shape}"
+            )
         # tiled image
         if tiled:
             shape = (*self.tiled_resolution, spec["channels"])

@@ -10,6 +10,36 @@
 
 https://private-user-images.githubusercontent.com/88101805/619409345-cc074c5d-4567-4418-8a29-1385aaba9d5b.mp4
 
+## Isaac Sim 6.1 migration branch
+
+This fork targets **Isaac Sim 6.1.0, Python 3.12, and Isaac Lab 3.0.0 Early Access**
+(release commit `ae37b028ea415c91ea2bc32609efcd759ed2b974`). The installation
+instructions below describe upstream 5.1 and must not be used for this branch.
+Use the pinned container build and portable Harbor task generator in
+[llm-for-robotics-benchmark](https://github.com/neulab/llm-for-robotics-benchmark/tree/portable-harbor-benchmarks/containers/robodojo).
+No Harbor modifications are required.
+
+The simulator migration preserves RoboDojo's external WXYZ pose convention;
+conversion to/from Lab 3's XYZW convention happens at robot configuration and
+observation boundaries. Native scene objects still use Isaac Sim's legacy prim
+wrappers, with a stage-bound physics view that is released on close.
+
+Validated on an NVIDIA L40S with driver 610.43.02:
+
+- Real `push_T` seed-zero layout, three RGB cameras, repeated resets, native
+  reward calculation, and CuRobo planner initialization.
+- A full 601-frame ACT joint-space episode using the published
+  `arx_x5-100-joint` checkpoint, normalization statistics, and unmodified native
+  grader. It completed with score **0.0** and success **false**; this demonstrates
+  evaluation execution, not policy success or parity with the 5.1 leaderboard.
+- `python scripts/internal/isaac61_smoke.py --output /tmp/robodojo-smoke`
+  exercises actual assets, two resets, finite poses, and populated camera frames.
+  `--without-planner` is available for isolating simulator tests.
+
+Full-suite, multi-environment, deformable-task, and cross-version score parity
+are not established. Pin this branch when reproducing these results; do not
+mix its source with the upstream 5.1 installer or Lab 2.x.
+
 ## News
 
 - **September 16–17, 2026**

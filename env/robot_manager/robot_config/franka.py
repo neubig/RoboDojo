@@ -34,24 +34,24 @@ def get_robot_config():
                 "panda_finger_joint2": 0.04,
             },
             pos=(0.25, -0.25, 0.0),
-            rot=(0.707, 0, 0, 0.707),
+            rot=(0, 0, 0.707, 0.707),
         ),
         actuators={
             "panda_shoulder": ImplicitActuatorCfg(
                 joint_names_expr=["panda_joint[1-4]"],
-                effort_limit_sim=87.0,
+                joint_effort_limit=87.0,
                 stiffness=1000.0,
                 damping=200.0,
             ),
             "panda_forearm": ImplicitActuatorCfg(
                 joint_names_expr=["panda_joint[5-7]"],
-                effort_limit_sim=12.0,
+                joint_effort_limit=12.0,
                 stiffness=400.0,
                 damping=80.0,
             ),
             "panda_hand": ImplicitActuatorCfg(
                 joint_names_expr=["panda_finger_joint.*"],
-                effort_limit_sim=200.0,
+                joint_effort_limit=200.0,
                 stiffness=2e3,
                 damping=1e2,
             ),

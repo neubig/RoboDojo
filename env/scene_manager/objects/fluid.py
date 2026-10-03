@@ -4,7 +4,6 @@ import carb
 from isaacsim.core.utils.prims import delete_prim, is_prim_path_valid
 from isaacsim.core.utils.stage import add_reference_to_stage, get_current_stage
 from isaacsim.core.utils.string import find_unique_string_name
-from isaacsim.replicator.behavior.utils.scene_utils import create_mdl_material
 import numpy as np
 from omegaconf import DictConfig, ListConfig
 import omni.kit.commands
@@ -12,6 +11,8 @@ from omni.physx.scripts import particleUtils, physicsUtils
 from pxr import Gf, PhysxSchema, Sdf, UsdGeom, Vt
 from scipy.spatial import Delaunay
 import torch
+
+from utils.usd_schema import create_mdl_material
 
 
 class FluidObject:

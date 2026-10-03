@@ -4,12 +4,16 @@ from typing import Any
 import gymnasium as gym
 from isaaclab.envs import DirectRLEnvCfg
 from isaaclab.scene import InteractiveSceneCfg
-from isaaclab_tasks.utils import parse_env_cfg  # this need dynamic import
+from isaaclab.sim.utils.stage import get_current_stage_id
+from isaaclab_physx.renderers.isaac_rtx_renderer_cfg import IsaacRtxRendererGlobalSettingsCfg
+from isaaclab_physx.renderers.isaac_rtx_renderer_utils import apply_isaac_rtx_global_settings
+from isaacsim.core.simulation_manager import SimulationManager
 from isaacsim.core.utils.stage import get_current_stage
 from omegaconf import DictConfig, OmegaConf
-from omni.physx import acquire_physx_interface
+import omni.physics.tensors
+from omni.physx import get_physx_interface
 
-from env.environment.isaac.isaac_rl_env import IsaacRLEnv
+from env.environment.isaac.isaac_rl_env import IsaacRLEnv, IsaacRLEnvCfg
 from env.seeding import seed_everywhere
 
 DEFAULT_SIM_DEVICE = "cpu"
@@ -118,7 +122,9 @@ class BaseEnv(gym.Env):
         Args:
             config (DictConfig): The configuration for the environment. This comes from hydra yaml.
         """
-        self.sim_cfg: DirectRLEnvCfg = parse_env_cfg("IsaacRLEnv-V0", device=self.device, use_fabric=self.use_fabric)
+        self.sim_cfg: DirectRLEnvCfg = IsaacRLEnvCfg()
+        self.sim_cfg.sim.device = self.device
+        self.sim_cfg.sim.use_fabric = self.use_fabric
 
         self.sim_cfg.decimation = config.decimation
         self.sim_cfg.sim.dt = config.get("dt", 1 / 60)
@@ -151,6 +157,13 @@ class BaseEnv(gym.Env):
         except Exception:
             traceback.print_exc()
             raise
+        # Sim 6.1 legacy prims ignore the supplied view and read this singleton.
+        # initialize_physics() would restart PhysX and invalidate Lab-owned handles.
+        self._legacy_physics_view = omni.physics.tensors.create_simulation_view(
+            "numpy", stage_id=get_current_stage_id()
+        )
+        self._legacy_physics_view.set_subspace_roots("/")
+        SimulationManager._physics_sim_view = self._legacy_physics_view
         self.env_spacing = config.scene.env_spacing
         self.sim.env_spacing = self.env_spacing
         self.env_origins = self.sim.scene.env_origins
@@ -178,8 +191,10 @@ class BaseEnv(gym.Env):
             self.config.get("frequency_settings"),
         )
 
-        _apply_render_settings(self.sim_cfg.sim.render, render_config, frequency_settings)
-        _apply_physx_settings(self.sim_cfg.sim.physx, physx_config)
+        render_settings = IsaacRtxRendererGlobalSettingsCfg()
+        _apply_render_settings(render_settings, render_config, frequency_settings)
+        apply_isaac_rtx_global_settings(render_settings)
+        _apply_physx_settings(self.sim_cfg.sim.physics, physx_config)
 
     def sim_step(self, render: bool = True):
         """
@@ -193,11 +208,8 @@ class BaseEnv(gym.Env):
         This function will be called after simulation context is created
         """
         # enable cpu garment and deformable
-        self.physics_interface = acquire_physx_interface()
+        self.physics_interface = get_physx_interface()
         self.physics_interface.overwrite_gpu_setting(1)
-
-        # expose physics context
-        self.physics_context = sim.sim.get_physics_context()
 
     def close(self):
         try:
@@ -208,6 +220,13 @@ class BaseEnv(gym.Env):
             tl.set_current_time(0.0)
         except Exception as e:
             print("[restart] timeline stop/set failed:", e)
+
+        legacy_view = getattr(self, "_legacy_physics_view", None)
+        if legacy_view is not None:
+            if SimulationManager.get_physics_sim_view() is legacy_view:
+                SimulationManager._physics_sim_view = None
+            legacy_view.invalidate()
+            self._legacy_physics_view = None
 
         if self.sim is not None:
             self.sim.close()

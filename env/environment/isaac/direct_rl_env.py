@@ -3,7 +3,7 @@ from isaaclab.envs.direct_rl_env import DirectRLEnv
 
 class CustomDirectRLEnv(DirectRLEnv):
     def sim_step(self, render: bool = True):
-        is_rendering = self.sim.has_gui() or self.sim.has_rtx_sensors()
+        is_rendering = self.sim.is_rendering
 
         for _ in range(self.cfg.decimation):
             self._sim_step_counter += 1

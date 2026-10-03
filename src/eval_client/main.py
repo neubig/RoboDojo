@@ -3,6 +3,7 @@ from datetime import datetime
 import importlib
 import json
 import os
+from pathlib import Path
 import sys
 
 from isaaclab.app import AppLauncher
@@ -61,6 +62,8 @@ parser.add_argument(
 parser.add_argument("--seed", type=int, required=True, help="policy seed for eval")
 
 AppLauncher.add_app_launcher_args(parser)
+parser.add_argument("--headless", action="store_true", help="Run Kit without a window.")
+parser.add_argument("--enable_cameras", action="store_true", help="Enable RTX camera capture.")
 args_cli = parser.parse_args()
 
 # Safe to import before AppLauncher: env is a namespace package (no __init__)
@@ -126,8 +129,27 @@ from env.camera_manager.capture.render_sync import add_zero_delay_kit_args
 add_zero_delay_kit_args(args_cli)
 
 # launch omniverse app
+args_cli.require_kit = True
+args_cli.enable_cameras = True
+if not args_cli.visualizer:
+    args_cli.visualizer = ["kit"]
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
+
+import isaacsim
+import omni.kit.app
+
+extension_manager = omni.kit.app.get_app().get_extension_manager()
+for package_path in isaacsim.__path__:
+    extension_manager.add_path(str(Path(package_path) / "extsDeprecated"))
+
+for extension in (
+    "isaacsim.core.api",
+    "isaacsim.core.prims",
+    "isaacsim.sensors.camera",
+    "isaacsim.replicator.behavior",
+):
+    extension_manager.set_extension_enabled_immediate(extension, True)
 
 from omegaconf import OmegaConf
 
@@ -310,10 +332,7 @@ def main():
     )
     capped_num_envs = resolve_random_task_num_envs(task_name, num_envs, env_cfg.sim)
     if capped_num_envs != num_envs:
-        print(
-            f"[main] Random task {task_name}: num_envs capped "
-            f"{num_envs} -> {capped_num_envs} "
-        )
+        print(f"[main] Random task {task_name}: num_envs capped {num_envs} -> {capped_num_envs} ")
     num_envs = capped_num_envs
     if not eval_batch and num_envs != 1:
         print(

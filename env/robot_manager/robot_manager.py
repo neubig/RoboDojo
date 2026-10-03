@@ -89,10 +89,10 @@ class RobotManager:
         for idx, robot in enumerate(self.robot_list):
             key = self.robot_key[idx]
             if robot.robot_type == "arm":
-                target_joints = key.data.default_joint_pos.clone()
-                target_vel = key.data.default_joint_vel.clone()
-                key.set_joint_position_target(target_joints)
-                key.set_joint_velocity_target(target_vel)
+                target_joints = key.data.default_joint_pos.torch.clone()
+                target_vel = key.data.default_joint_vel.torch.clone()
+                key.set_joint_position_target_index(target=target_joints)
+                key.set_joint_velocity_target_index(target=target_vel)
 
     def set_robot_init_state(self, env_idx_list=None):
         if env_idx_list is None:
@@ -145,7 +145,9 @@ class RobotManager:
         key = self.robot_key[self.robot_list.index(robot)]
         entity_link = key.body_names
         env_origin_pos = deepcopy(self.scene.env_origins)
-        link_pose = key.data.body_link_pose_w.clone()
+        link_pose = key.data.body_link_pose_w.torch.clone()
+        # Lab uses XYZW; RoboDojo observations and planners retain WXYZ.
+        link_pose[..., 3:7] = link_pose[..., [6, 3, 4, 5]]
 
         if link_name not in entity_link:
             raise ValueError(f"Link name {link_name} not found in robot {robot.robot_name}")
@@ -176,7 +178,7 @@ class RobotManager:
         results = {}
         key = self.robot_key[self.robot_list.index(robot)]
         arm_indices = robot.arm_joint_indices
-        joint_state = key.data.joint_pos.clone()
+        joint_state = key.data.joint_pos.torch.clone()
         for env_idx in range(self.num_envs):
             if env_idx in env_idx_list:
                 joints = deepcopy(joint_state[env_idx][arm_indices])
@@ -192,7 +194,7 @@ class RobotManager:
         results = {}
         key = self.robot_key[self.robot_list.index(robot)]
         gripper_indices = robot.gripper_joint_indices
-        joint_state = key.data.joint_pos.clone()
+        joint_state = key.data.joint_pos.torch.clone()
         for env_idx in range(self.num_envs):
             if env_idx in env_idx_list:
                 joints = deepcopy(joint_state[env_idx][gripper_indices])
@@ -396,10 +398,14 @@ class RobotManager:
                     )
 
                 env_ids = torch.tensor(plan_lst, dtype=torch.int32, device=arm_velocity.device)
-                arm.set_joint_position_target(arm_position, joint_ids=robot.arm_joint_indices, env_ids=env_ids)  # arm
-                arm.set_joint_velocity_target(arm_velocity, joint_ids=robot.arm_joint_indices, env_ids=env_ids)  # arm
-                arm.set_joint_position_target(
-                    gripper_position,
+                arm.set_joint_position_target_index(
+                    target=arm_position, joint_ids=robot.arm_joint_indices, env_ids=env_ids
+                )  # arm
+                arm.set_joint_velocity_target_index(
+                    target=arm_velocity, joint_ids=robot.arm_joint_indices, env_ids=env_ids
+                )  # arm
+                arm.set_joint_position_target_index(
+                    target=gripper_position,
                     joint_ids=robot.gripper_joint_indices,
                     env_ids=env_ids,
                 )  # gripper
@@ -624,7 +630,7 @@ class RobotManager:
             prim_path=f"{ENV_REGEX_NAMESPACE}/robot{idx}",
             init_state=ArticulationCfg.InitialStateCfg(
                 pos=base_pose[:3],
-                rot=base_pose[-4:],
+                rot=(*base_pose[-3:], base_pose[-4]),
                 joint_pos=scene_cfg.init_state.joint_pos,
             ),
         )
