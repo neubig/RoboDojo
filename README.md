@@ -36,6 +36,15 @@ Validated on an NVIDIA L40S with driver 610.43.02:
   exercises actual assets, two resets, finite poses, and populated camera frames.
   `--without-planner` is available for isolating simulator tests.
 
+The original Lab 2 rendering presets are retained under `env_cfg/rendering_modes`
+because Lab 3 no longer applies `rendering_mode` itself. GPU containers also need
+the host NVIDIA **NGX** driver library (`libnvidia-ngx.so.1`) for DLSS denoising.
+On Apptainer installations whose `--nv` library list omits NGX, expose the matching
+host library explicitly. Missing NGX produces noisy observations even when the
+simulation and camera-buffer checks pass. Check rendered frames, not only array
+shapes. The initial full ACT episode above preceded this driver-library fix;
+a corrected full rollout remains necessary before drawing policy conclusions.
+
 Full-suite, multi-environment, deformable-task, and cross-version score parity
 are not established. Pin this branch when reproducing these results; do not
 mix its source with the upstream 5.1 installer or Lab 2.x.

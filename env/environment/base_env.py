@@ -1,4 +1,6 @@
 from collections.abc import Sequence, Sequence as SequenceABC
+from pathlib import Path
+import tomllib
 from typing import Any
 
 import gymnasium as gym
@@ -83,8 +85,26 @@ def _apply_physx_settings(physx_cfg, config):
 
 
 def _apply_render_settings(render_cfg, render_config, frequency_settings):
+    mode = render_config.get("rendering_mode") or "balanced"
+    if mode not in {"quality", "balanced", "performance"}:
+        raise ValueError(f"Unsupported rendering mode: {mode}")
+    preset_path = Path(__file__).resolve().parents[2] / "env_cfg" / "rendering_modes" / f"{mode}.kit"
+    with preset_path.open("rb") as stream:
+        preset = tomllib.load(stream)
+
+    def flatten(node, prefix=""):
+        for key, value in node.items():
+            path = f"{prefix}/{key}"
+            if isinstance(value, dict):
+                yield from flatten(value, path)
+            else:
+                yield path, value
+
+    # Lab 3 removed the Lab 2 render presets; apply them before explicit overrides.
+    apply_isaac_rtx_global_settings(IsaacRtxRendererGlobalSettingsCfg(carb_settings=dict(flatten(preset))))
     for key in _RENDER_KEYS:
-        setattr(render_cfg, key, render_config[key])
+        if key != "rendering_mode":
+            setattr(render_cfg, key, render_config[key])
 
     carb_settings = render_config.get("carb_settings") or {}
     if isinstance(carb_settings, DictConfig):
