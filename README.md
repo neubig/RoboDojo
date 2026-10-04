@@ -10,13 +10,15 @@
 
 https://private-user-images.githubusercontent.com/88101805/619409345-cc074c5d-4567-4418-8a29-1385aaba9d5b.mp4
 
-## Isaac Sim 6.1 migration branch
+## Isaac Sim 6.1 migration fork
 
-This fork targets **Isaac Sim 6.1.0, Python 3.12, and Isaac Lab 3.0.0 Early Access**
+This is [neubig/RoboDojo](https://github.com/neubig/RoboDojo), a fork of
+[robodojo-benchmark/RoboDojo](https://github.com/robodojo-benchmark/RoboDojo).
+Its `main` branch targets **Isaac Sim 6.1.0, Python 3.12, and Isaac Lab 3.0.0 Early Access**
 (release commit `ae37b028ea415c91ea2bc32609efcd759ed2b974`). The installation
-instructions below describe upstream 5.1 and must not be used for this branch.
+instructions below describe upstream 5.1 and must not be used for this migration.
 Use the pinned container build and portable Harbor task generator in
-[llm-for-robotics-benchmark](https://github.com/neulab/llm-for-robotics-benchmark/tree/portable-harbor-benchmarks/containers/robodojo).
+[llm-for-robotics-benchmark](https://github.com/neulab/llm-for-robotics-benchmark/tree/main/containers/robodojo).
 No Harbor modifications are required.
 
 The simulator migration preserves RoboDojo's external WXYZ pose convention;
@@ -46,8 +48,17 @@ shapes. The initial full ACT episode above preceded this driver-library fix;
 a corrected full rollout remains necessary before drawing policy conclusions.
 
 Full-suite, multi-environment, deformable-task, and cross-version score parity
-are not established. Pin this branch when reproducing these results; do not
+are not established. Use the source revision pinned by the integration repository when reproducing
+these results; do not
 mix its source with the upstream 5.1 installer or Lab 2.x.
+
+For the two-stage portable dataset and standard `harbor run` workflow, see the
+[integration README](https://github.com/neulab/llm-for-robotics-benchmark).
+The original benchmark documentation below is retained for reference; it does
+not establish full-suite compatibility with this migration.
+
+*Migration implementation and this fork-specific guidance were authored by
+OpenHands, an AI agent, on behalf of Graham Neubig.*
 
 ## News
 
